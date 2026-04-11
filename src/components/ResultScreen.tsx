@@ -1,24 +1,19 @@
-import { useMemo, useRef, useState, useEffect } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { motion, useReducedMotion } from 'motion/react';
-import { Sparkles, Share2, RotateCcw, Camera, Zap } from 'lucide-react';
+import { AlertCircle, CheckCircle2, Sparkles, Copy, RotateCcw, Download, Zap } from 'lucide-react';
 import { styles, type DelegateStyle } from '../data';
-import { getWittyEssay } from '../data/wittyEssays';
-import { TypeCatalog } from './TypeCatalog';
 import {
   computeResultCode,
   getDimensionScores,
   isHiddenStyleCode,
 } from '../lib/munResult';
-import {
-  HiddenResultBody,
-  buildHiddenShareText,
-  getHiddenHeaderClass,
-} from './hidden/HiddenResultPages';
+import { HiddenResultBody, getHiddenHeaderClass } from './hidden/HiddenResultPages';
 import {
   StandardResultSections,
   type StandardCaptureRefs,
 } from './StandardResultSections';
-import { downloadResultSectionPngs } from '../lib/captureResultSections';
+import { downloadResultComposite } from '../lib/captureResultSections';
+import { COPY_LINK_URL } from '../lib/siteUrl';
 import { Button } from '@/components/ui/button';
 import { CardContent } from '@/components/ui/card';
 import { Separator } from '@/components/ui/separator';
@@ -49,11 +44,18 @@ export function ResultScreen({ answers, onReset }: Props) {
   const reduce     = useReducedMotion();
 
   const [revealed, setRevealed]             = useState(!isHidden);
-  const [shareFeedback, setShareFeedback]   = useState<'idle' | 'shared' | 'copied'>('idle');
-  const [showCatalog, setShowCatalog]       = useState(false);
   const [isCapturing, setIsCapturing]       = useState(false);
+  const [toast, setToast] = useState<
+    | null
+    | { variant: 'success'; title: string; message: string }
+    | { variant: 'error'; title: string; message: string }
+  >(null);
 
-  const catalogRef    = useRef<HTMLElement | null>(null);
+  useEffect(() => {
+    if (!toast || toast.variant !== 'success') return;
+    const id = window.setTimeout(() => setToast(null), 2600);
+    return () => window.clearTimeout(id);
+  }, [toast]);
   const headerRef     = useRef<HTMLDivElement>(null);
   const easterRef     = useRef<HTMLElement>(null);
   const promoRef      = useRef<HTMLDivElement>(null);
@@ -82,72 +84,95 @@ export function ResultScreen({ answers, onReset }: Props) {
     ? (isFullHidden ? resultCode : 'HIDDEN')
     : resultCode;
 
-  const wittyEssay = useMemo(() => getWittyEssay(resultCode), [resultCode]);
-
-  useEffect(() => {
-    if (!showCatalog) return;
-    const id = window.requestAnimationFrame(() => {
-      catalogRef.current?.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
-    });
-    return () => window.cancelAnimationFrame(id);
-  }, [showCatalog]);
-
   const captureFilePrefix = `春秋模联-${displayCode.replace(/[^\w\u4e00-\u9fff-]+/g, '_')}`;
 
-  const captureSectionScreenshots = async () => {
+  const downloadTestResultImage = async () => {
     if (isCapturing) return;
     setIsCapturing(true);
     try {
       await new Promise((r) => setTimeout(r, 320));
       const activeRefs = isFullHidden ? hiddenRefs : stdRefs;
-      const slots: { el: HTMLElement | null | undefined; fileLabel: string }[] = [
-        { el: headerRef.current,                   fileLabel: '属性头图' },
-        { el: activeRefs.celebrities.current,      fileLabel: '代表人物' },
-        { el: activeRefs.essay.current,            fileLabel: '类型描述' },
-        { el: activeRefs.dims.current,             fileLabel: '维度侧写' },
-        { el: activeRefs.letters.current,          fileLabel: '字母解释' },
-        { el: isHidden && !isFullHidden ? easterRef.current : undefined, fileLabel: '彩蛋侧写' },
-        { el: promoRef.current,                    fileLabel: '活动与联络' },
-        ...(showCatalog ? [{ el: catalogRef.current, fileLabel: '完整图鉴' }] : []),
-      ];
-      await downloadResultSectionPngs(captureFilePrefix, slots);
+      await downloadResultComposite(captureFilePrefix, {
+        headerEl: headerRef.current,
+        essayEl: activeRefs.essay.current,
+      });
+    } catch (e) {
+      console.error(e);
+      setToast({
+        variant: 'error',
+        title: '生成失败',
+        message: e instanceof Error ? e.message : '请稍后重试',
+      });
     } finally {
       setIsCapturing(false);
     }
   };
 
-  const buildShareBody = () =>
-    isFullHidden
-      ? buildHiddenShareText(resultCode, style.name)
-      : [`【春秋模联·模联人格测试】`, `${style.name}（${displayCode}）`, '', wittyEssay, ''].join('\n');
-
-  const shareOrForward = async () => {
-    const text  = buildShareBody();
-    const url   = window.location.href;
-    const title = `春秋模联·模联人格测试 · ${style.name}（${displayCode}）`;
-    const full  = `${text}\n\n在线测试：${url}`;
-
-    if (typeof navigator.share === 'function') {
-      try {
-        await navigator.share({ title, text: full });
-        setShareFeedback('shared');
-        setShowCatalog(true);
-        window.setTimeout(() => setShareFeedback('idle'), 2200);
-        return;
-      } catch (e) {
-        if (e instanceof Error && e.name === 'AbortError') return;
-      }
-    }
+  const copySiteLink = async () => {
     try {
-      await navigator.clipboard.writeText(full);
-      setShareFeedback('copied');
-      setShowCatalog(true);
-      window.setTimeout(() => setShareFeedback('idle'), 2200);
-    } catch { /* ignore */ }
+      await navigator.clipboard.writeText(COPY_LINK_URL);
+      setToast({
+        variant: 'success',
+        title: '链接已复制',
+        message: '网站链接已在剪贴板中，可直接粘贴到微信、QQ 等分享给好友。',
+      });
+    } catch {
+      setToast({
+        variant: 'error',
+        title: '复制未成功',
+        message: '请手动选中并复制浏览器地址栏中的链接。',
+      });
+    }
   };
 
   return (
     <div className="relative">
+      {toast ? (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
+          <button
+            type="button"
+            className="absolute inset-0 bg-slate-900/50 backdrop-blur-[2px]"
+            aria-label="关闭"
+            onClick={() => setToast(null)}
+          />
+          <motion.div
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="result-toast-title"
+            initial={reduce ? false : { opacity: 0, scale: 0.96, y: 8 }}
+            animate={{ opacity: 1, scale: 1, y: 0 }}
+            transition={{ duration: 0.22, ease: [0.22, 1, 0.36, 1] }}
+            className="relative z-10 w-full max-w-sm overflow-hidden rounded-2xl border border-slate-200/90 bg-white shadow-2xl shadow-slate-900/15"
+          >
+            <div className="p-6">
+              <div className="flex gap-3.5">
+                {toast.variant === 'success' ? (
+                  <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-emerald-100 text-emerald-600">
+                    <CheckCircle2 className="h-6 w-6" strokeWidth={2} />
+                  </div>
+                ) : (
+                  <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-rose-100 text-rose-600">
+                    <AlertCircle className="h-6 w-6" strokeWidth={2} />
+                  </div>
+                )}
+                <div className="min-w-0 pt-0.5">
+                  <h3 id="result-toast-title" className="text-base font-semibold tracking-tight text-slate-900">
+                    {toast.title}
+                  </h3>
+                  <p className="mt-1.5 text-sm leading-relaxed text-slate-600">{toast.message}</p>
+                </div>
+              </div>
+              <Button
+                type="button"
+                className="mt-6 h-11 w-full rounded-xl bg-[#A64D52] text-white hover:bg-[#8f4448]"
+                onClick={() => setToast(null)}
+              >
+                知道了
+              </Button>
+            </div>
+          </motion.div>
+        </div>
+      ) : null}
       {/* 顶部装饰光晕 */}
       <motion.div
         aria-hidden
@@ -288,9 +313,6 @@ export function ResultScreen({ answers, onReset }: Props) {
 
           {/* 宣传区 + 全图鉴提示 */}
           <div ref={promoRef} className="space-y-5">
-            <p className="rounded-2xl border border-[#A64D52]/25 bg-[#A64D52]/[0.07] px-4 py-3 text-center text-sm font-semibold leading-snug text-[#A64D52] sm:text-base">
-              下滑转发解锁全图鉴16人格以及8个隐藏人格
-            </p>
             <section className="space-y-4" aria-label="春秋模联 SAMUN">
               <p className="text-center text-[11px] font-semibold uppercase tracking-[0.2em] text-slate-400">
                 春秋模联 · SAMUN
@@ -316,21 +338,6 @@ export function ResultScreen({ answers, onReset }: Props) {
             </section>
           </div>
 
-          {/* 转发后展示完整图鉴 */}
-          {showCatalog && (
-            <motion.section
-              ref={catalogRef}
-              initial={reduce ? false : { opacity: 0, y: 16 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.38, ease: [0.22, 1, 0.36, 1] }}
-              className="space-y-4 rounded-[1.75rem] border border-[#A64D52]/20 bg-gradient-to-b from-white to-[#A64D52]/[0.04] px-5 py-8 sm:px-8 sm:py-10"
-              aria-label="全图鉴"
-            >
-              <p className="text-center text-sm font-medium text-[#A64D52]">转发成功 · 以下为完整人格图鉴（16 + 8）</p>
-              <TypeCatalog />
-            </motion.section>
-          )}
-
           <Separator />
 
           {/* 操作按钮 */}
@@ -339,19 +346,19 @@ export function ResultScreen({ answers, onReset }: Props) {
               <RotateCcw className="mr-2 h-4 w-4" />
               再来一轮
             </Button>
-            <Button size="lg" className="rounded-full px-8 shadow-md" onClick={shareOrForward}>
-              <Share2 className="mr-2 h-4 w-4" />
-              {shareFeedback === 'shared' ? '已分享' : shareFeedback === 'copied' ? '已复制' : '转发分享'}
+            <Button size="lg" className="rounded-full px-8 shadow-md" onClick={() => void copySiteLink()}>
+              <Copy className="mr-2 h-4 w-4" />
+              复制链接
             </Button>
             <Button
               size="lg"
               variant="secondary"
               className="rounded-full px-8"
               disabled={isCapturing}
-              onClick={() => void captureSectionScreenshots()}
+              onClick={() => void downloadTestResultImage()}
             >
-              <Camera className="mr-2 h-4 w-4" />
-              {isCapturing ? '导出中…' : '一键截图'}
+              <Download className="mr-2 h-4 w-4" />
+              {isCapturing ? '生成中…' : '下载测试结果'}
             </Button>
           </div>
         </CardContent>

@@ -110,7 +110,6 @@ const PHOTO_EXT: Record<string, string> = {
 export const SIG_EXT: Record<string, string> = {
   CESP: 'webp',
   AESP: 'webp',
-  AENP: 'webp',
   HIDDEN_LEADER: 'webp',
   HIDDEN_OBSERVER: 'webp',
   HIDDEN_STRATEGIST: 'webp',
