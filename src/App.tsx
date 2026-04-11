@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useLayoutEffect } from 'react';
 import { motion } from 'motion/react';
 import { questions } from './data';
 import { ResultScreen } from './components/ResultScreen';
@@ -37,6 +37,11 @@ export default function App() {
     setAnswers({});
     setStep('intro');
   };
+
+  /** 答题页滚到底部后切到结果页时，保留滚动位置会落在结果页「中部」；每步切换都回到顶部 */
+  useLayoutEffect(() => {
+    window.scrollTo(0, 0);
+  }, [step]);
 
   return (
     <div
