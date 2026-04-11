@@ -1,5 +1,9 @@
-import { Fragment } from 'react';
-import { motion, useReducedMotion } from 'motion/react';
+import type { RefObject } from 'react';
+import { styles } from '../../data';
+import { getWittyEssay } from '../../data/wittyEssays';
+import type { DimensionScores, HiddenStyleCode } from '../../lib/munResult';
+import type { StandardCaptureRefs } from '../StandardResultSections';
+import { StandardResultSections } from '../StandardResultSections';
 import {
   CircleDot,
   Landmark,
@@ -11,210 +15,121 @@ import {
   Wind,
 } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
-import { getWittyEssay } from '../../data/wittyEssays';
-import { dimensionLabels, type DimensionScores, type HiddenStyleCode } from '../../lib/munResult';
-import { Card, CardContent } from '@/components/ui/card';
 
-const HIDDEN_WHY: Record<HiddenStyleCode, { icon: LucideIcon; accent: string; badge: string; trigger: string }> = {
-  HIDDEN_SUMMIT: {
+/** 与中文名对应的对外英文标签（分享文案等） */
+export function hiddenSpecialLabel(code: HiddenStyleCode): string {
+  const s = styles[code];
+  if (s?.nameEn && s?.name) return `SPECIAL · ${s.nameEn}（${s.name}）`;
+  if (s?.name) return `SPECIAL·${s.name}`;
+  return code;
+}
+
+// ── 仅供 buildHiddenShareText 使用 ──────────────────────────────────
+
+const HIDDEN_WHY: Record<HiddenStyleCode, { icon: LucideIcon; accent: string; trigger: string }> = {
+  HIDDEN_LEADER: {
     icon: Mountain,
     accent: 'text-amber-800',
-    badge: '极罕 · 四维同高',
     trigger:
-      '在含反向题的折算后，策略、表达、文本、游说四维均分中的最低分仍不低于约 4.35。表示你在自陈上极少「留短板」，四轴同时站在高原——这类「全频高配」在人群里比例极低，故不归入十六格之一，而单独成款。',
+      '含反向题折算后，策略、表达、文本、游说四维均分的最低分仍不低于约 4.35——你在自陈上几乎不留任何短板，四条战线同时站在高原。这种"全频高配"在人群里极为罕见，正是领袖型的统计印记：一个人同时驾驭了常人需要整支团队才能覆盖的全部维度。',
   },
-  HIDDEN_ABYSS: {
+  HIDDEN_OBSERVER: {
     icon: Waves,
     accent: 'text-slate-700',
-    badge: '极罕 · 四维同低',
     trigger:
-      '四维均分中的最高分仍不高于约 1.65。表示你在四条轴线上同步把自我画像压到极低区；与常见「至少一维会为自己留一点」的填答不同，统计上稀少，故单列。',
+      '四维均分的最高分仍不高于约 1.65——你把所有维度都收缩到了最内敛的极点。这不是能力的缺失，而是一种极度克制的战略性静默：你将百分之九十九的能量储存在水面之下，等待那百分之一的定局时刻再出手。多数人至少会在某一维上保留"在场感"，而你选择了全维度的深潜。',
   },
-  HIDDEN_SPIRE: {
+  HIDDEN_EXPERT: {
     icon: Landmark,
     accent: 'text-orange-800',
-    badge: '罕见 · 单轴独峰',
     trigger:
-      '恰有一条维度 ≥ 约 4.5，且另三条均 ≤ 约 2.9。即「一柱擎天」式剖面：自我叙事高度集中在一种会场角色上，其余维度自陈明显偏低——与十六型假设的「多轴组合平衡」不一致，故标为稀有款。',
+      '恰有一条维度 ≥ 约 4.5，且另三条均 ≤ 约 2.9——你将所有天赋与政治资源毫无保留地倾注在了一条极致的轴线上，其余维度则自陈极低。这是专家型的典型剖面：不屑做面面俱到的通才，只打磨那把最锋利的单刃剑，只要会议进入你所统治的垂直领域，便能爆发出绝对统治力。',
   },
-  HIDDEN_DIAD: {
+  HIDDEN_VERSATILE: {
     icon: SplitSquareHorizontal,
     accent: 'text-violet-800',
-    badge: '罕见 · 双高双低',
     trigger:
-      '恰有两条维度 ≥ 约 3.85，且恰有两条 ≤ 约 2.15。形成「两维燃烧、两维休眠」的对角式组合；此类双峰剖面在随机填答中很难自然出现，算法将其与典型十六型区分对待。',
+      '恰有两条维度 ≥ 约 3.85，且恰有两条 ≤ 约 2.15——"一半燃烧、一半关机"的对角式组合。这是多面手型的统计特征：台前是激情演说家，台下是冷酷文本切割机；或在底线前寸步不让，却又热衷于茶歇时的私下温和交易。两种极端属性的完美融合，让你成为全场最难被预测的终极变量。',
   },
-  HIDDEN_TEMPEST: {
+  HIDDEN_GAME_CHANGER: {
     icon: Wind,
     accent: 'text-cyan-800',
-    badge: '稀有 · 极差巨大',
     trigger:
-      '四维最高分与最低分之差 ≥ 约 2.25。说明你在协作、表达、文本、游说上的自陈允许强烈内部不一致——「锋面气候」式人格，在样本里相对少见，故单独标注。',
+      '四维最高分与最低分之差 ≥ 约 2.25——你允许自己在极度的渴望与极度的冷漠之间自由切换，四条维度之间存在剧烈的内部落差。这是破局者的标志：拒绝被任何单一政治标签束缚，正是这种常人难以理解的剧烈反差，赋予了你打破僵局、在无路可走处劈出大道的奇迹般能力。',
   },
-  HIDDEN_PLATEAU: {
+  HIDDEN_BALANCER: {
     icon: CircleDot,
     accent: 'text-sky-800',
-    badge: '稀有 · 窄轨中轨',
     trigger:
-      '四维极差 ≤ 约 0.42，且均值落在约 2.72–3.28。四轴彼此咬得很紧又都漂在量表中线附近，难以用 C/A、E/I 等比特清晰切开，属于难标签化的稀有均衡剖面。',
+      '四维极差 ≤ 约 0.42，且均值落在约 2.72–3.28——四条维度彼此咬合紧密，又都稳稳锚定在量表中位线附近。这是平衡者的统计画像：不带任何极端锋芒，对情绪化攻击和意识形态陷阱天然免疫，每个阵营都能在你身上找到安全感。黄金分割般的均衡感，让你成为全场最容易被各方接受的最大公约数本身。',
   },
-  HIDDEN_HIGHFLOOR: {
+  HIDDEN_ESTABLISHMENT: {
     icon: TrendingUp,
     accent: 'text-emerald-800',
-    badge: '少见 · 高地板',
     trigger:
-      '四维最低分仍 ≥ 约 3.85，但未满足更严格的「四岳同辉」条件。表示各维同步偏高却未全体封顶——「高线旅队」式少见剖面，与典型十六型格点区分展示。',
+      '四维最低分仍 ≥ 约 3.85，但未达到「领袖」的更严阈值——你极其聪明地将所有维度维持在了一个毫无弱点的高水平线上。这是建制派的剖面：没有将自己逼入极限状态，而是以持续且稳定的高质量输出，让任何试图寻找突破口的对手最终因找不到短板而感到绝望。',
   },
-  HIDDEN_LOWCEILING: {
+  HIDDEN_STRATEGIST: {
     icon: TrendingDown,
     accent: 'text-slate-600',
-    badge: '少见 · 低云顶',
     trigger:
-      '四维最高分仍 ≤ 约 2.15，但未落入更极端的「夜海同沉」区间。各维同步偏低却不至全盘触底，自陈上形成压低云顶式的少见形态，故单列说明。',
+      '四维最高分仍 ≤ 约 2.15，但未落入「观察者」的更极端区间——你同步克制了在所有维度上的表现欲，像一朵低垂的云层，不显山不露水。这是战略家的打法：深谙"多做多错"，将低姿态作为成本最低的防御术，在所有人精疲力尽、防线松懈的关键时刻，用最小的动作完成那次决定性的表态。',
   },
 };
 
+// ── 头图渐变色 ───────────────────────────────────────────────────────
+
 export function getHiddenHeaderClass(code: HiddenStyleCode): string {
   const map: Record<HiddenStyleCode, string> = {
-    HIDDEN_SUMMIT: 'from-amber-400 via-orange-500 to-rose-600',
-    HIDDEN_ABYSS: 'from-slate-700 via-slate-800 to-zinc-950',
-    HIDDEN_SPIRE: 'from-orange-500 via-amber-600 to-yellow-700',
-    HIDDEN_DIAD: 'from-violet-600 via-purple-600 to-fuchsia-700',
-    HIDDEN_TEMPEST: 'from-cyan-600 via-sky-600 to-blue-800',
-    HIDDEN_PLATEAU: 'from-sky-400 via-cyan-500 to-teal-600',
-    HIDDEN_HIGHFLOOR: 'from-emerald-500 via-teal-600 to-cyan-700',
-    HIDDEN_LOWCEILING: 'from-slate-500 via-slate-600 to-slate-800',
+    HIDDEN_LEADER:     'from-amber-400 via-orange-500 to-rose-600',
+    HIDDEN_OBSERVER:      'from-slate-700 via-slate-800 to-zinc-950',
+    HIDDEN_EXPERT:      'from-orange-500 via-amber-600 to-yellow-700',
+    HIDDEN_VERSATILE:       'from-violet-600 via-purple-600 to-fuchsia-700',
+    HIDDEN_GAME_CHANGER:    'from-cyan-600 via-sky-600 to-blue-800',
+    HIDDEN_BALANCER:   'from-sky-400 via-cyan-500 to-teal-600',
+    HIDDEN_ESTABLISHMENT:  'from-emerald-500 via-teal-600 to-cyan-700',
+    HIDDEN_STRATEGIST: 'from-slate-500 via-slate-600 to-slate-800',
   };
   return map[code];
 }
 
-function HiddenBarRow({
-  label,
-  value,
-  hint,
-  delay,
-}: {
-  label: string;
-  hint: string;
-  value: number;
-  delay: number;
-}) {
-  const reduce = useReducedMotion();
-  const pct = (value / 5) * 100;
-  return (
-    <div className="space-y-2">
-      <div className="flex justify-between gap-3 text-sm">
-        <span className="font-semibold text-slate-800">{label}</span>
-        <span className="tabular-nums text-slate-500">{value.toFixed(2)} / 5</span>
-      </div>
-      <p className="text-xs text-slate-500">{hint}</p>
-      <div className="h-3 w-full overflow-hidden rounded-full bg-slate-200/80">
-        <motion.div
-          className="h-full rounded-full bg-gradient-to-r from-slate-600 to-slate-800"
-          initial={reduce ? { width: `${pct}%` } : { width: 0 }}
-          animate={{ width: `${pct}%` }}
-          transition={{ duration: reduce ? 0 : 0.85, delay: reduce ? 0 : delay, ease: [0.22, 1, 0.36, 1] }}
-        />
-      </div>
-    </div>
-  );
-}
+// ── 隐藏款正文（与普通款完全相同的五板块布局）────────────────────────
 
-function DimSnapshot({ dims }: { dims: DimensionScores }) {
-  const arr = [dims.s, dims.e, dims.t, dims.m];
-  const minD = Math.min(...arr);
-  const maxD = Math.max(...arr);
-  const spread = maxD - minD;
-  const mean = arr.reduce((a, b) => a + b, 0) / 4;
-  return (
-    <div className="grid grid-cols-2 gap-3 rounded-xl border border-slate-200 bg-slate-50/90 p-4 text-sm sm:grid-cols-4">
-      <div>
-        <p className="text-xs text-slate-500">最低维</p>
-        <p className="font-mono font-semibold text-slate-900">{minD.toFixed(2)}</p>
-      </div>
-      <div>
-        <p className="text-xs text-slate-500">最高维</p>
-        <p className="font-mono font-semibold text-slate-900">{maxD.toFixed(2)}</p>
-      </div>
-      <div>
-        <p className="text-xs text-slate-500">极差</p>
-        <p className="font-mono font-semibold text-slate-900">{spread.toFixed(2)}</p>
-      </div>
-      <div>
-        <p className="text-xs text-slate-500">均值</p>
-        <p className="font-mono font-semibold text-slate-900">{mean.toFixed(2)}</p>
-      </div>
-    </div>
-  );
-}
-
-const BORDER_ACCENT: Record<HiddenStyleCode, string> = {
-  HIDDEN_SUMMIT: 'border-l-amber-500',
-  HIDDEN_ABYSS: 'border-l-slate-700',
-  HIDDEN_SPIRE: 'border-l-orange-500',
-  HIDDEN_DIAD: 'border-l-violet-500',
-  HIDDEN_TEMPEST: 'border-l-cyan-500',
-  HIDDEN_PLATEAU: 'border-l-sky-400',
-  HIDDEN_HIGHFLOOR: 'border-l-emerald-500',
-  HIDDEN_LOWCEILING: 'border-l-slate-400',
+/** capture refs 从外部传入，结构与 StandardCaptureRefs 相同 */
+export type HiddenResultCaptureRefs = {
+  celebrities: RefObject<HTMLElement | null>;
+  essay:       RefObject<HTMLElement | null>;
+  dims:        RefObject<HTMLElement | null>;
+  letters:     RefObject<HTMLElement | null>;
 };
 
-export function HiddenResultBody({ code, dims }: { code: HiddenStyleCode; dims: DimensionScores }) {
-  const meta = HIDDEN_WHY[code];
-  const Icon = meta.icon;
-  const analysis = getWittyEssay(code);
-  const dimList = dimensionLabels();
-  const border = BORDER_ACCENT[code];
-
+export function HiddenResultBody({
+  code,
+  dims,
+  captureRefs,
+}: {
+  code: HiddenStyleCode;
+  dims: DimensionScores;
+  captureRefs?: HiddenResultCaptureRefs;
+}) {
   return (
-    <div className="space-y-8">
-      <DimSnapshot dims={dims} />
-
-      <div className="grid gap-6 lg:grid-cols-2">
-        <Card className={`border-slate-200 shadow-sm lg:border-l-4 ${border}`}>
-          <CardContent className="space-y-3 p-6">
-            <div className="flex items-center gap-2">
-              <Icon className={`h-7 w-7 shrink-0 ${meta.accent}`} />
-              <h3 className="text-lg font-bold text-slate-900">为何是隐藏款</h3>
-            </div>
-            <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">{meta.badge}</p>
-            <p className="text-sm leading-relaxed text-slate-700">{meta.trigger}</p>
-          </CardContent>
-        </Card>
-        <Card className="border-slate-200 bg-slate-50/80 shadow-sm">
-          <CardContent className="space-y-3 p-6">
-            <h3 className="text-lg font-bold text-slate-900">侧写分析</h3>
-            <p className="text-sm leading-[1.85] text-slate-800">{analysis}</p>
-          </CardContent>
-        </Card>
-      </div>
-
-      <section className="space-y-4">
-        <h3 className="text-base font-bold text-slate-900">四维折算分</h3>
-        <div className="space-y-6 rounded-2xl border border-slate-100 bg-slate-50/80 p-6">
-          {dimList.map((d, i) => (
-            <Fragment key={d.key}>
-              <HiddenBarRow
-                label={d.title}
-                hint={`偏高：${d.high} · 偏低：${d.low}`}
-                value={dims[d.key]}
-                delay={0.06 * i}
-              />
-            </Fragment>
-          ))}
-        </div>
-      </section>
-    </div>
+    <StandardResultSections
+      resultCode={code}
+      dims={dims}
+      captureRefs={captureRefs as StandardCaptureRefs | undefined}
+    />
   );
 }
+
+// ── 分享文案 ─────────────────────────────────────────────────────────
 
 export function buildHiddenShareText(code: HiddenStyleCode, styleName: string): string {
   const w = HIDDEN_WHY[code];
   return [
-    `【MUN 代表风格 · 隐藏款】`,
+    `【春秋模联·模联人格测试 · 隐藏款】`,
     `${styleName}（${code}）`,
     '',
-    `【为何是隐藏款】${w.badge}`,
+    `【为何是隐藏款】${hiddenSpecialLabel(code)}`,
     w.trigger,
     '',
     '【侧写分析】',

@@ -14,24 +14,25 @@ function getAdjustedScore(answers: Record<number, number>, id: number): number {
 }
 
 export function getDimensionScores(answers: Record<number, number>): DimensionScores {
+  const sum = (ids: number[]) => ids.reduce((acc, id) => acc + getAdjustedScore(answers, id), 0) / ids.length;
   return {
-    s: (getAdjustedScore(answers, 1) + getAdjustedScore(answers, 3) + getAdjustedScore(answers, 4) + getAdjustedScore(answers, 5) + getAdjustedScore(answers, 2)) / 5,
-    e: (getAdjustedScore(answers, 6) + getAdjustedScore(answers, 8) + getAdjustedScore(answers, 10) + getAdjustedScore(answers, 7) + getAdjustedScore(answers, 9)) / 5,
-    t: (getAdjustedScore(answers, 11) + getAdjustedScore(answers, 13) + getAdjustedScore(answers, 14) + getAdjustedScore(answers, 12) + getAdjustedScore(answers, 15)) / 5,
-    m: (getAdjustedScore(answers, 16) + getAdjustedScore(answers, 19) + getAdjustedScore(answers, 17) + getAdjustedScore(answers, 18) + getAdjustedScore(answers, 20)) / 5,
+    s: sum([1, 2, 3, 4, 5, 6, 7, 8, 9, 10]),
+    e: sum([11, 12, 13, 14, 15, 16, 17, 18, 19, 20]),
+    t: sum([21, 22, 23, 24, 25, 26, 27, 28, 29, 30]),
+    m: sum([31, 32, 33, 34, 35, 36, 37, 38, 39, 40]),
   };
 }
 
 /** 基于四维折算分的 8 种「稀有剖面」隐藏款（与 computeResultCode 返回值一致） */
 export const HIDDEN_STYLE_CODES = [
-  'HIDDEN_SUMMIT',
-  'HIDDEN_ABYSS',
-  'HIDDEN_SPIRE',
-  'HIDDEN_DIAD',
-  'HIDDEN_TEMPEST',
-  'HIDDEN_PLATEAU',
-  'HIDDEN_HIGHFLOOR',
-  'HIDDEN_LOWCEILING',
+  'HIDDEN_LEADER',
+  'HIDDEN_OBSERVER',
+  'HIDDEN_EXPERT',
+  'HIDDEN_VERSATILE',
+  'HIDDEN_GAME_CHANGER',
+  'HIDDEN_BALANCER',
+  'HIDDEN_ESTABLISHMENT',
+  'HIDDEN_STRATEGIST',
 ] as const;
 
 export type HiddenStyleCode = (typeof HIDDEN_STYLE_CODES)[number];
@@ -42,7 +43,16 @@ export function isHiddenStyleCode(code: string): code is HiddenStyleCode {
 
 /**
  * 四字母十六型；若四维折算后出现「统计上少见的剖面」，则返回隐藏款而非四码。
- * 隐藏款仅依据 s/e/t/m 四维均分判定，与单题是否全选某数、奇偶模式等无关。
+ *
+ * 隐藏款触发逻辑（按优先级依次判断）：
+ *  领袖 Leader HIDDEN_LEADER — 四维最低分 ≥ 4.35，全频高配
+ *  观察者 Observer       HIDDEN_OBSERVER    — 四维最高分 ≤ 1.65，全维深潜
+ *  专家 Expert           HIDDEN_EXPERT      — 恰 1 维 ≥ 4.5 且另 3 维 ≤ 2.9，单轴极致
+ *  多面手 Versatile      HIDDEN_VERSATILE   — 恰 2 维 ≥ 3.85 且恰 2 维 ≤ 2.15，双极并存
+ *  破局者 Game Changer   HIDDEN_GAME_CHANGER — 四维极差 ≥ 2.25，内部剧烈落差
+ *  平衡者 Balancer       HIDDEN_BALANCER    — 极差 ≤ 0.42 且均值在 2.72–3.28，均衡中轨
+ *  建制派 Establishment  HIDDEN_ESTABLISHMENT — 四维最低分 ≥ 3.85（低于领袖阈值），高水平线无弱点
+ *  战略家 Strategist     HIDDEN_STRATEGIST — 四维最高分 ≤ 2.15（高于观察者阈值），低姿态全线克制
  */
 export function computeResultCode(answers: Record<number, number>): string {
   const dims = getDimensionScores(answers);
@@ -57,29 +67,49 @@ export function computeResultCode(answers: Record<number, number>): string {
   const spike = arr.filter((d) => d >= 4.5).length;
   const low3 = arr.filter((d) => d <= 2.9).length;
 
-  if (minD >= 4.35) return 'HIDDEN_SUMMIT';
-  if (maxD <= 1.65) return 'HIDDEN_ABYSS';
-  if (spike === 1 && low3 === 3) return 'HIDDEN_SPIRE';
-  if (hi === 2 && lo === 2) return 'HIDDEN_DIAD';
-  if (spread >= 2.25) return 'HIDDEN_TEMPEST';
-  if (spread <= 0.42 && meanD >= 2.72 && meanD <= 3.28) return 'HIDDEN_PLATEAU';
-  if (minD >= 3.85) return 'HIDDEN_HIGHFLOOR';
-  if (maxD <= 2.15) return 'HIDDEN_LOWCEILING';
+  if (minD >= 4.35) return 'HIDDEN_LEADER';
+  if (maxD <= 1.65) return 'HIDDEN_OBSERVER';
+  if (spike === 1 && low3 === 3) return 'HIDDEN_EXPERT';
+  if (hi === 2 && lo === 2) return 'HIDDEN_VERSATILE';
+  if (spread >= 2.25) return 'HIDDEN_GAME_CHANGER';
+  if (spread <= 0.42 && meanD >= 2.72 && meanD <= 3.28) return 'HIDDEN_BALANCER';
+  if (minD >= 3.85) return 'HIDDEN_ESTABLISHMENT';
+  if (maxD <= 2.15) return 'HIDDEN_STRATEGIST';
 
   const sCode = sScore > 3 ? 'C' : 'A';
   const eCode = eScore > 3 ? 'E' : 'I';
   const tCode = tScore > 3 ? 'S' : 'N';
-  const mCode = mScore > 3 ? 'P' : 'H';
+  const mCode = mScore > 3 ? 'P' : 'B';
 
   return `${sCode}${eCode}${tCode}${mCode}`;
 }
 
 export function dimensionLabels(): { key: keyof DimensionScores; title: string; high: string; low: string }[] {
   return [
-    { key: 's', title: '策略倾向 (S)', high: '协作 / 共识', low: '竞争 / 捍卫' },
-    { key: 'e', title: '表达风格 (E)', high: '煽动 / 气场', low: '逻辑 / 数据' },
-    { key: 't', title: '文本关注 (T)', high: '细节 / 条款', low: '大局 / 架构' },
-    { key: 'm', title: '游说手段 (M)', high: '公开 / 动议', low: '幕后 / 私聊' },
+    {
+      key: 's',
+      title: '策略（S）· 协商 vs 捍卫',
+      high: '并案折中、互让一步、写进可表决案文',
+      low: '划线守底、公开对峙、底线先于共识',
+    },
+    {
+      key: 'e',
+      title: '表达（E）· 气场 vs 书证',
+      high: '讲台结构、临场叙事、全场能见度',
+      low: '脚注数据、书面质询、以稿代讲',
+    },
+    {
+      key: 't',
+      title: '文本（T）· 颗粒 vs 框架',
+      high: '条款颗粒、逻辑闭环、义务可追责',
+      low: '章节骨架、愿景留白、细节后移',
+    },
+    {
+      key: 'm',
+      title: '游说（M）· 台前 vs 幕后',
+      high: '全会动议、有主持磋商、公开博弈',
+      low: '茶歇耳语、走廊议价、双边小圈',
+    },
   ];
 }
 
@@ -88,12 +118,12 @@ export const RESULT_LETTER_EN: Record<
   string,
   { word: string; phraseZh: string }
 > = {
-  C: { word: 'Collaboration', phraseZh: '协作与共识取向。' },
-  A: { word: 'Assertive', phraseZh: '竞争与捍卫取向。' },
-  E: { word: 'Expressive', phraseZh: '气场、叙事与现场说服。' },
-  I: { word: 'Informative', phraseZh: '逻辑、数据与书面论证。' },
-  S: { word: 'Specifics', phraseZh: '条款、细节与可执行性。' },
-  N: { word: 'Narrative', phraseZh: '愿景、架构与方向框架。' },
-  P: { word: 'Public', phraseZh: '全体会议、动议与可见议程行动。' },
-  H: { word: 'Hidden', phraseZh: '走廊、私下磋商与小范围议价。' },
+  C: { word: 'Collaboration', phraseZh: '策略上偏「织网并案」：愿为可表决文本付协调成本。' },
+  A: { word: 'Assertive', phraseZh: '策略上偏「划线捍卫」：愿为底线承受公开对峙与延宕。' },
+  E: { word: 'Expressive', phraseZh: '表达上偏「台前气场」：主发言、举牌与可见议程动作。' },
+  I: { word: 'Informative', phraseZh: '表达上偏「书证脚注」：数据、工作文件与质询稿。' },
+  S: { word: 'Specifics', phraseZh: '文本上偏「条款颗粒」：义务、编号、可追责与闭环。' },
+  N: { word: 'Narrative', phraseZh: '文本上偏「愿景框架」：章节骨架、方向句与后移细节。' },
+  P: { word: 'Public', phraseZh: '游说上偏「台前博弈」：全会、动议与公开拉票。' },
+  B: { word: 'Backchannel', phraseZh: '游说上偏「幕后议价」：走廊、茶歇与小范围双边。' },
 };

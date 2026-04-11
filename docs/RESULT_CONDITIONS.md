@@ -9,16 +9,18 @@
 ### 1.1 单题与 reverse
 
 - 每题 **1～5**。
-- 带 **`reverse: true`** 的题：先 **`6 − 原得分`**，再参与所属维度的**算术平均**。
+- 带 `**reverse: true`** 的题：先 `**6 − 原得分**`，再参与所属维度的**算术平均**。
 
 ### 1.2 四维均分 `s, e, t, m`（各约 1～5）
 
-| 维度 | 题号（原始题号） |
-|------|------------------|
-| **s** 策略 | 1, 2, 3, 4, 5 |
-| **e** 表达 | 6, 7, 8, 9, 10 |
+
+| 维度       | 题号（原始题号）           |
+| -------- | ------------------ |
+| **s** 策略 | 1, 2, 3, 4, 5      |
+| **e** 表达 | 6, 7, 8, 9, 10     |
 | **t** 文本 | 11, 12, 13, 14, 15 |
 | **m** 游说 | 16, 17, 18, 19, 20 |
+
 
 记 `arr = [s,e,t,m]`，`minD = min(arr)`，`maxD = max(arr)`，`spread = maxD − minD`，`mean = average(arr)`。  
 另：`hi` = 其中 **≥ 3.85** 的个数，`lo` = 其中 **≤ 2.15** 的个数；`spike` = **≥ 4.5** 的个数，`low3` = **≤ 2.9** 的个数。
@@ -36,16 +38,18 @@
 
 **含义**：隐藏款表示你的 **四维组合在统计上少见或特殊**，算法用单独一页说明，而**不用** CESP 等十六格概括。
 
-| 顺序 | 条件（均为折算后四维） | 代码 | 展示名称 |
-|------|------------------------|------|----------|
-| ① | `minD ≥ 4.35` | `HIDDEN_SUMMIT` | 极罕·四岳同辉 |
-| ② | `maxD ≤ 1.65` | `HIDDEN_ABYSS` | 极罕·夜海同沉 |
-| ③ | 恰 **1** 维 `≥ 4.5` 且另 **3** 维均 `≤ 2.9` | `HIDDEN_SPIRE` | 罕见·一柱擎天 |
-| ④ | 恰 **2** 维 `≥ 3.85` 且恰 **2** 维 `≤ 2.15` | `HIDDEN_DIAD` | 罕见·双锋并立 |
-| ⑤ | `spread ≥ 2.25` | `HIDDEN_TEMPEST` | 稀有·锋面人格 |
-| ⑥ | `spread ≤ 0.42` 且 `2.72 ≤ mean ≤ 3.28` | `HIDDEN_PLATEAU` | 稀有·镜湖均衡 |
-| ⑦ | `minD ≥ 3.85`（且未触发 ①） | `HIDDEN_HIGHFLOOR` | 少见·高线旅队 |
-| ⑧ | `maxD ≤ 2.15`（且未触发 ②） | `HIDDEN_LOWCEILING` | 少见·低云行营 |
+
+| 顺序  | 条件（均为折算后四维）                            | 代码                     | 中文 / English        |
+| --- | -------------------------------------- | ---------------------- | ------------------- |
+| ①   | `minD ≥ 4.35`                          | `HIDDEN_LEADER`        | 领袖 / Leader         |
+| ②   | `maxD ≤ 1.65`                          | `HIDDEN_OBSERVER`      | 观察者 / Observer      |
+| ③   | 恰 **1** 维 `≥ 4.5` 且另 **3** 维均 `≤ 2.9`  | `HIDDEN_EXPERT`        | 专家 / Expert         |
+| ④   | 恰 **2** 维 `≥ 3.85` 且恰 **2** 维 `≤ 2.15` | `HIDDEN_VERSATILE`     | 多面手 / Versatile     |
+| ⑤   | `spread ≥ 2.25`                        | `HIDDEN_GAME_CHANGER`  | 破局者 / Game Changer  |
+| ⑥   | `spread ≤ 0.42` 且 `2.72 ≤ mean ≤ 3.28` | `HIDDEN_BALANCER`      | 平衡者 / Balancer      |
+| ⑦   | `minD ≥ 3.85`（且未触发 ①）                  | `HIDDEN_ESTABLISHMENT` | 建制派 / Establishment |
+| ⑧   | `maxD ≤ 2.15`（且未触发 ②）                  | `HIDDEN_STRATEGIST`    | 战略家 / Strategist    |
+
 
 ---
 
@@ -53,14 +57,16 @@
 
 四维字母规则与此前相同：**均分 `> 3` 取高侧字母，否则取低侧**（等于 3 走低侧）。
 
-| 位 | 维度 | 高侧 | 低侧 |
-|----|------|------|------|
-| 1 | s | C | A |
-| 2 | e | E | I |
-| 3 | t | S | N |
-| 4 | m | P | H |
 
-十六种代码与名称见应用内 `styles` 或上一版文档表（`CESP`～`AINH`）。
+| 位   | 维度  | 高侧  | 低侧  |
+| --- | --- | --- | --- |
+| 1   | s   | C   | A   |
+| 2   | e   | E   | I   |
+| 3   | t   | S   | N   |
+| 4   | m   | P   | B   |
+
+
+十六种代码与名称见应用内 `styles`（`CESP`～`AINB`）。
 
 ---
 
@@ -71,7 +77,7 @@
 - `src/data.ts` → `styles` 中隐藏款键名与文案  
 - `src/data/wittyEssays.ts`  
 - `src/components/hidden/HiddenResultPages.tsx` → `HIDDEN_WHY`、`getHiddenHeaderClass`  
-- **`HIDDEN_STYLE_CODES`**（`munResult.ts`）  
+- `**HIDDEN_STYLE_CODES`**（`munResult.ts`）  
 - **本文档**
 
 ---

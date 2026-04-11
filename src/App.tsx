@@ -59,7 +59,7 @@ export default function App() {
             >
               <Card className="overflow-hidden rounded-[1.75rem] border border-slate-200 bg-white ring-0">
                 <CardHeader className="relative space-y-0 pb-2 pt-10 text-center sm:pt-12">
-                  <p className="mb-6 text-[11px] font-semibold uppercase tracking-[0.35em] text-[#a64d52]">模联 · 情境问卷</p>
+                  <p className="mb-6 text-[11px] font-semibold uppercase tracking-[0.35em] text-[#a64d52]">春秋模联·模联人格测试</p>
 
                   <div className="relative mx-auto mb-8 h-36 w-36 sm:h-40 sm:w-40">
                     <div className="absolute inset-0 -rotate-[8deg] rounded-2xl border border-rose-100 bg-rose-50/50" />
@@ -79,7 +79,7 @@ export default function App() {
                     代表风格侧写
                   </CardTitle>
                   <CardDescription className="mx-auto mt-4 max-w-sm text-[15px] leading-relaxed text-slate-600">
-                    共二十道情境题，请根据您在模联会议中的真实经历与习惯作答。得分仅用于生成风格侧写结果，无对错之分。
+                    共四十道情境题，请根据您在模联会议中的真实经历与习惯作答。得分仅用于生成风格侧写结果，无对错之分。
                   </CardDescription>
                 </CardHeader>
 
@@ -117,17 +117,27 @@ export default function App() {
 
         {step === 'test' && (
           <div className="space-y-6 pb-24">
-            <div className="sticky top-0 z-10 bg-slate-50/80 backdrop-blur-md pt-4 pb-6 border-b border-slate-200/50">
-              <div className="flex items-center justify-between mb-2">
-                <h2 className="text-lg font-semibold text-slate-900">随便看看</h2>
-                <span className="text-sm font-medium tabular-nums text-slate-500">
-                  {Object.keys(answers).length} / {questions.length}
-                </span>
+            <div className="sticky top-0 z-10 border-b border-slate-200/50 bg-slate-50/80 pb-6 pt-4 backdrop-blur-md">
+              <div className="flex items-start gap-3 sm:gap-4">
+                <img
+                  src="/munti-mark.png"
+                  alt="春秋模联"
+                  className="h-12 w-12 shrink-0 object-contain sm:h-14 sm:w-14"
+                  decoding="async"
+                />
+                <div className="min-w-0 flex-1 space-y-3">
+                  <div className="flex items-center justify-between gap-2">
+                    <h2 className="text-base font-semibold leading-snug text-slate-900 sm:text-lg">春秋模联·模联人格测试</h2>
+                    <span className="shrink-0 text-sm font-medium tabular-nums text-slate-500">
+                      {Object.keys(answers).length} / {questions.length}
+                    </span>
+                  </div>
+                  <Progress
+                    value={(Object.keys(answers).length / questions.length) * 100}
+                    className="h-2 [&_[data-slot=progress-indicator]]:bg-emerald-500"
+                  />
+                </div>
               </div>
-              <Progress
-                value={(Object.keys(answers).length / questions.length) * 100}
-                className="h-2 [&_[data-slot=progress-indicator]]:bg-emerald-500"
-              />
             </div>
 
             <div className="space-y-8 mt-8">
