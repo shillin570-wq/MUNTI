@@ -7,12 +7,15 @@ import {
   getDimensionScores,
   isHiddenStyleCode,
 } from '../lib/munResult';
-import { HiddenResultBody, getHiddenHeaderClass } from './hidden/HiddenResultPages';
+import { getHiddenHeaderClass } from './hidden/HiddenResultPages';
+import { getResultMascotUrl } from '../lib/resultMascot';
 import {
   StandardResultSections,
   type StandardCaptureRefs,
 } from './StandardResultSections';
+import { getWittyEssay } from '../data/wittyEssays';
 import { downloadResultComposite } from '../lib/captureResultSections';
+import { ResultDownloadComposite } from './ResultDownloadComposite';
 import { COPY_LINK_URL } from '../lib/siteUrl';
 import { Button } from '@/components/ui/button';
 import { CardContent } from '@/components/ui/card';
@@ -56,9 +59,9 @@ export function ResultScreen({ answers, onReset }: Props) {
     const id = window.setTimeout(() => setToast(null), 2600);
     return () => window.clearTimeout(id);
   }, [toast]);
-  const headerRef     = useRef<HTMLDivElement>(null);
-  const easterRef     = useRef<HTMLElement>(null);
-  const promoRef      = useRef<HTMLDivElement>(null);
+  const downloadCompositeRef = useRef<HTMLDivElement>(null);
+  const easterRef           = useRef<HTMLElement>(null);
+  const promoRef            = useRef<HTMLDivElement>(null);
 
   // 普通结果截图 refs
   const stdRefs: StandardCaptureRefs = {
@@ -84,6 +87,9 @@ export function ResultScreen({ answers, onReset }: Props) {
     ? (isFullHidden ? resultCode : 'HIDDEN')
     : resultCode;
 
+  const mascotSrc = useMemo(() => getResultMascotUrl(resultCode), [resultCode]);
+  const wittyEssay  = useMemo(() => getWittyEssay(resultCode), [resultCode]);
+
   const captureFilePrefix = `春秋模联-${displayCode.replace(/[^\w\u4e00-\u9fff-]+/g, '_')}`;
 
   const downloadTestResultImage = async () => {
@@ -91,10 +97,8 @@ export function ResultScreen({ answers, onReset }: Props) {
     setIsCapturing(true);
     try {
       await new Promise((r) => setTimeout(r, 320));
-      const activeRefs = isFullHidden ? hiddenRefs : stdRefs;
       await downloadResultComposite(captureFilePrefix, {
-        headerEl: headerRef.current,
-        essayEl: activeRefs.essay.current,
+        compositeEl: downloadCompositeRef.current,
       });
     } catch (e) {
       console.error(e);
@@ -190,7 +194,6 @@ export function ResultScreen({ answers, onReset }: Props) {
       >
         {/* ══ #1 属性 · 渐变头图 ══ */}
         <div
-          ref={headerRef}
           className={`relative bg-gradient-to-br ${headerClass} px-6 py-12 text-center text-white sm:px-10 sm:py-14`}
         >
           <motion.div
@@ -223,56 +226,84 @@ export function ResultScreen({ answers, onReset }: Props) {
             <span className="h-px w-8 bg-white/40" />
           </motion.div>
 
-          <motion.p
-            className="relative mb-3 text-sm font-medium tracking-widest text-white/80"
-            initial={reduce ? false : { opacity: 0, y: 8 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.12 }}
-          >
-            你更像
-          </motion.p>
-
-          <motion.h2
-            className="relative mb-4 text-4xl font-bold tracking-tight sm:text-5xl"
-            initial={reduce ? false : { opacity: 0, y: 12 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.18 }}
-          >
-            {style.name}
-          </motion.h2>
-
-          {style.nameEn ? (
+          {/* 结构参考性格卡片：顶栏标签 → 主标题 → 副标题 → 单张主视觉 → 代码 → 说明（配色仍为当前渐变头图） */}
+          <div className="relative z-[2] mx-auto flex w-full max-w-lg flex-col items-center text-center">
             <motion.p
-              className="relative -mt-1 mb-4 text-center text-[13px] font-semibold tracking-[0.22em] text-white/85"
+              className="mb-2 text-sm font-medium tracking-widest text-white/80"
               initial={reduce ? false : { opacity: 0, y: 8 }}
               animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.2 }}
+              transition={{ delay: 0.12 }}
             >
-              SPECIAL · {style.nameEn}
+              你更像
             </motion.p>
-          ) : null}
 
-          <motion.div
-            initial={reduce ? false : { opacity: 0, y: 6 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.24 }}
-            className="relative mx-auto mb-5 flex items-center justify-center gap-2"
-          >
-            <span className="h-px w-8 bg-white/40" />
-            <span className="font-mono text-sm font-semibold tracking-[0.35em] text-white/90 uppercase">
-              {displayCode}
-            </span>
-            <span className="h-px w-8 bg-white/40" />
-          </motion.div>
+            <motion.h2
+              className="mb-2 text-4xl font-bold tracking-tight sm:text-5xl"
+              initial={reduce ? false : { opacity: 0, y: 12 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.18 }}
+            >
+              {style.name}
+            </motion.h2>
 
-          <motion.p
-            className="relative mx-auto max-w-xl text-base font-light leading-relaxed text-white/95 sm:text-lg"
-            initial={reduce ? false : { opacity: 0, y: 10 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.3 }}
-          >
-            {style.tagline}
-          </motion.p>
+            {style.nameEn ? (
+              <motion.p
+                className="mb-8 text-[13px] font-semibold tracking-[0.22em] text-white/85 sm:mb-10"
+                initial={reduce ? false : { opacity: 0, y: 8 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.2 }}
+              >
+                SPECIAL · {style.nameEn}
+              </motion.p>
+            ) : (
+              <div className="mb-8 sm:mb-10" aria-hidden />
+            )}
+
+            {mascotSrc ? (
+              <motion.div
+                className="relative mb-10 flex w-full flex-col items-center sm:mb-12"
+                initial={reduce ? false : { opacity: 0, y: 14 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.22 }}
+              >
+                <img
+                  src={mascotSrc}
+                  alt=""
+                  decoding="async"
+                  className="pointer-events-none relative z-10 h-auto w-auto max-h-[11.5rem] max-w-[min(88vw,17rem)] object-contain object-bottom sm:max-h-[13.5rem] sm:max-w-[19rem] md:max-h-[15.5rem] md:max-w-[21rem]"
+                  aria-hidden
+                />
+                <div
+                  className="pointer-events-none -mt-0.5 h-5 w-[min(74%,12rem)] rounded-[100%] bg-black/30 blur-md sm:h-5 sm:w-[min(70%,13.5rem)] md:w-[min(68%,15rem)]"
+                  aria-hidden
+                />
+              </motion.div>
+            ) : (
+              <div className="mb-10 sm:mb-12" aria-hidden />
+            )}
+
+            <motion.div
+              initial={reduce ? false : { opacity: 0, y: 6 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.26 }}
+              className="mb-6 flex items-center justify-center gap-2"
+            >
+              <span className="h-px w-8 bg-white/40" />
+              <span className="font-mono text-sm font-semibold tracking-[0.35em] text-white/90 uppercase">
+                {displayCode}
+              </span>
+              <span className="h-px w-8 bg-white/40" />
+            </motion.div>
+
+            <motion.p
+              className="max-w-xl text-base font-light leading-relaxed text-white/95 sm:text-lg"
+              initial={reduce ? false : { opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.3 }}
+            >
+              {style.tagline}
+            </motion.p>
+          </div>
 
           {isHidden && !isFullHidden && (
             <motion.button
@@ -363,6 +394,16 @@ export function ResultScreen({ answers, onReset }: Props) {
           </div>
         </CardContent>
       </motion.div>
+
+      <ResultDownloadComposite
+        ref={downloadCompositeRef}
+        headerGradientClass={headerClass}
+        displayCode={displayCode}
+        styleName={style.name}
+        nameEn={style.nameEn}
+        mascotSrc={mascotSrc}
+        essay={wittyEssay}
+      />
     </div>
   );
 }
